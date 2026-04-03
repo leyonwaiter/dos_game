@@ -1,3 +1,4 @@
+cat > index.html << 'EOF'
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -16,105 +17,131 @@
             height: 100%;
             overflow: hidden;
             background: #000;
-            position: fixed;
         }
+        /* 游戏区域：居中最大化 */
         #game-area {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             background: #000;
+            z-index: 1;
         }
         canvas {
-            width: 100% !important;
-            height: 100% !important;
+            width: auto !important;
+            height: auto !important;
+            max-width: 100%;
+            max-height: 100%;
             object-fit: contain;
             display: block;
             outline: none;
         }
+        /* 虚拟键盘容器：横屏时左右分区 */
         .virtual-keyboard {
             position: fixed;
-            bottom: max(12px, env(safe-area-inset-bottom));
+            top: 0;
             left: 0;
-            right: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
-            justify-content: center;
-            align-items: flex-end;
-            gap: clamp(10px, 3vw, 20px);
-            padding: clamp(8px, 2vw, 12px);
-            background: rgba(0,0,0,0.65);
-            backdrop-filter: blur(10px);
-            flex-wrap: wrap;
-            z-index: 1000;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 2;
         }
+        /* 左区域：方向键，透明，可点击 */
         .dpad {
             display: grid;
-            grid-template-columns: repeat(3, min(18vw, 80px));
-            grid-template-rows: repeat(2, min(18vw, 80px));
-            gap: clamp(6px, 2vw, 12px);
+            grid-template-columns: repeat(3, 80px);
+            grid-template-rows: repeat(2, 80px);
+            gap: 12px;
             justify-items: center;
             align-items: center;
+            pointer-events: auto;
+            background: transparent;
+            padding: 20px;
         }
-        .dpad .up { grid-column: 2 / 3; grid-row: 1 / 2; }
-        .dpad .left { grid-column: 1 / 2; grid-row: 2 / 3; }
-        .dpad .down { grid-column: 2 / 3; grid-row: 2 / 3; }
-        .dpad .right { grid-column: 3 / 4; grid-row: 2 / 3; }
+        /* 右区域：确认取消，透明，可点击 */
         .action-buttons {
             display: flex;
-            gap: clamp(10px, 3vw, 20px);
+            flex-direction: column;
+            gap: 20px;
+            pointer-events: auto;
+            background: transparent;
+            padding: 20px;
         }
+        /* 按钮样式不变（只改背景透明） */
         .key-btn {
-            width: min(18vw, 80px);
-            height: min(18vw, 80px);
+            width: 80px;
+            height: 80px;
             border-radius: 20px;
-            background: rgba(44,62,80,0.9);
-            border: none;
-            color: #ecf0f1;
-            font-size: clamp(18px, 5vw, 28px);
+            background: rgba(0,0,0,0.4);
+            border: 2px solid rgba(255,255,255,0.6);
+            color: white;
+            font-size: 24px;
             font-weight: bold;
             text-align: center;
-            line-height: min(18vw, 80px);
+            line-height: 80px;
             cursor: pointer;
             touch-action: manipulation;
             transition: all 0.05s linear;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
         .action-buttons .key-btn {
-            width: min(22vw, 110px);
-            padding: 0 8px;
+            width: 100px;
         }
         .key-btn:active {
             transform: scale(0.94);
             background: #1abc9c;
             color: #000;
         }
-        @media (orientation: landscape) {
+        /* 竖屏时改为底部布局 */
+        @media (orientation: portrait) {
+            .virtual-keyboard {
+                flex-direction: column;
+                justify-content: flex-end;
+                align-items: center;
+                top: auto;
+                bottom: 0;
+                height: auto;
+                background: rgba(0,0,0,0.5);
+                padding: 12px 0;
+            }
             .dpad {
-                grid-template-columns: repeat(3, min(12vw, 70px));
-                grid-template-rows: repeat(2, min(12vw, 70px));
-                gap: 6px;
+                grid-template-columns: repeat(3, 70px);
+                grid-template-rows: repeat(2, 70px);
+                gap: 8px;
+                padding: 5px;
+            }
+            .action-buttons {
+                flex-direction: row;
+                gap: 20px;
+                padding: 5px;
             }
             .key-btn {
-                width: min(12vw, 70px);
-                height: min(12vw, 70px);
-                line-height: min(12vw, 70px);
-                font-size: clamp(16px, 4vw, 24px);
+                width: 70px;
+                height: 70px;
+                line-height: 70px;
+                font-size: 20px;
             }
             .action-buttons .key-btn {
-                width: min(16vw, 90px);
+                width: 90px;
+            }
+        }
+        /* 横屏时左右按钮完全透明无背景 */
+        @media (orientation: landscape) {
+            .dpad, .action-buttons {
+                background: transparent;
             }
             .virtual-keyboard {
-                bottom: 8px;
-                gap: 12px;
-                padding: 6px;
+                background: transparent;
             }
         }
-        @media (max-width: 600px) and (orientation: portrait) {
-            .dpad { gap: 6px; }
-            .key-btn { border-radius: 16px; }
-        }
+        /* 启动遮罩 */
         #start-overlay {
             position: fixed;
             top: 0;
@@ -127,24 +154,21 @@
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            backdrop-filter: blur(8px);
         }
         #start-btn {
             padding: 16px 40px;
-            font-size: clamp(20px, 6vw, 32px);
+            font-size: 26px;
             font-weight: bold;
             background: #4caf50;
             color: white;
             border: none;
             border-radius: 60px;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .info {
             color: #ccc;
             margin-top: 20px;
             font-size: 14px;
-            text-align: center;
         }
     </style>
 </head>
@@ -241,3 +265,4 @@
 </script>
 </body>
 </html>
+EOF
