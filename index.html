@@ -2,61 +2,127 @@
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>仙剑奇侠传</title>
     <script src="js-dos.js"></script>
     <style>
-        body {
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        body {
             background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
         }
         #container {
+            width: 100%;
+            height: 100%;
             position: relative;
+            background: #000;
         }
         canvas {
-            width: 640px;
-            height: 400px;
-            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain;
+            touch-action: manipulation;
         }
-        #startBtn {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 15px 40px;
-            font-size: 20px;
+        .btn {
+            position: fixed;
+            bottom: 20px;
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 1000;
+            touch-action: manipulation;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .btn-start {
+            left: 20px;
             background: #0f0;
             color: #000;
-            border: none;
-            cursor: pointer;
-            z-index: 100;
-            font-weight: bold;
         }
-        #startBtn:hover {
-            background: #0c0;
+        .btn-keyboard {
+            right: 20px;
+            background: #007bff;
+            color: #fff;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        @media (max-width: 768px) {
+            .btn {
+                padding: 8px 16px;
+                font-size: 14px;
+                bottom: 15px;
+            }
         }
     </style>
 </head>
 <body>
     <div id="container">
-        <canvas id="jsdos" width="640" height="400"></canvas>
-        <button id="startBtn">🎮 点击开始游戏</button>
+        <canvas id="jsdos"></canvas>
+        <button class="btn btn-start" id="startBtn">🎮 开始游戏</button>
+        <button class="btn btn-keyboard" id="keyboardBtn" style="display:none;">⌨️ 键盘</button>
     </div>
+
     <script>
         var dosInstance = null;
-        var btn = document.getElementById('startBtn');
         var canvas = document.getElementById('jsdos');
-        
-        btn.addEventListener('click', function() {
-            btn.style.display = 'none';
+        var startBtn = document.getElementById('startBtn');
+        var keyboardBtn = document.getElementById('keyboardBtn');
+
+        startBtn.addEventListener('click', function() {
+            var self = this;
+            self.style.display = 'none';
+            
             Dos(canvas).ready(function(fs, main) {
+                dosInstance = { fs: fs, main: main };
                 fs.extract("rom/pal.zip").then(function() {
                     main(["-c", "cd pal", "-c", "PAL!.EXE"]);
+                    // 游戏启动后显示虚拟键盘按钮
+                    keyboardBtn.style.display = 'block';
+                }).catch(function(err) {
+                    console.error("解压失败:", err);
+                    alert("游戏加载失败，请检查 rom/pal.zip 是否存在");
                 });
             });
+        });
+
+        // 虚拟键盘：触屏手机用
+        keyboardBtn.addEventListener('click', function() {
+            if (dosInstance && dosInstance.main) {
+                // 尝试唤起 js-dos 的虚拟键盘
+                if (typeof dosInstance.main.showKeyboard === 'function') {
+                    dosInstance.main.showKeyboard();
+                } else if (typeof dosInstance.main.sendKey === 'function') {
+                    // 备用方案：发送一个回车键
+                    dosInstance.main.sendKey(13);
+                } else {
+                    alert("点击 canvas 区域可唤起系统键盘\n如需输入，请轻触画面");
+                }
+            } else {
+                alert("游戏未启动，请先点击「开始游戏」");
+            }
+        });
+
+        // 点击 canvas 也能尝试唤起键盘（备用）
+        canvas.addEventListener('touchstart', function(e) {
+            if (dosInstance && dosInstance.main) {
+                if (typeof dosInstance.main.showKeyboard === 'function') {
+                    setTimeout(function() {
+                        dosInstance.main.showKeyboard();
+                    }, 100);
+                }
+            }
         });
     </script>
 </body>
