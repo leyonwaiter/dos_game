@@ -51,6 +51,10 @@
         }
         /* ========== 横屏布局（独立） ========== */
         @media (orientation: landscape) {
+            /* 关键修复：让包装层消失 */
+            .keyboard-bottom {
+                display: contents;
+            }
             .virtual-keyboard {
                 display: flex;
                 justify-content: space-between;
@@ -193,7 +197,6 @@
 </div>
 
 <div class="virtual-keyboard" id="virtualKeyboard" style="display: none;">
-    <!-- 竖屏时需要这个包装层，横屏时忽略 -->
     <div class="keyboard-bottom">
         <div class="dpad">
             <div class="key-btn up" data-key="ArrowUp" data-code="38">▲</div>
