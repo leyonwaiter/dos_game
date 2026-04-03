@@ -1,38 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>仙剑奇侠传</title>
+    <title>仙剑奇侠传 - 移动版</title>
     <script src="js-dos.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            touch-action: manipulation;
-        }
-        body {
-            background: #000;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            touch-action: manipulation;
-        }
-        #container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            background: #000;
-        }
-        canvas {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: contain;
-            touch-action: manipulation;
-        }
-        .btn {
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; touch-action: manipulation; }
+        body { background: #000; width: 100vw; height: 100vh; overflow: hidden; }
+        #container { width: 100%; height: 100%; position: relative; background: #000; }
+        canvas { width: 100% !important; height: 100% !important; object-fit: contain; }
+        /* 游戏控制按钮样式 */
+        .game-btn {
             position: fixed;
             bottom: 20px;
             padding: 12px 24px;
@@ -42,86 +21,112 @@
             border-radius: 8px;
             cursor: pointer;
             z-index: 1000;
-            touch-action: manipulation;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            transition: transform 0.1s ease;
         }
-        .btn-start {
-            left: 20px;
-            background: #0f0;
-            color: #000;
-        }
-        .btn-keyboard {
-            right: 20px;
-            background: #007bff;
-            color: #fff;
-        }
-        .btn:active {
-            transform: scale(0.96);
+        .game-btn:active { transform: scale(0.96); }
+        .btn-start { left: 20px; background: #4CAF50; color: white; }
+        .btn-keyboard { right: 20px; background: #2196F3; color: white; display: none; }
+        /* 透明输入框：用来唤起系统键盘，但不显示在屏幕上 */
+        #hidden-input {
+            position: fixed;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            width: 1px;
+            height: 1px;
         }
         @media (max-width: 768px) {
-            .btn {
-                padding: 8px 16px;
-                font-size: 14px;
-                bottom: 15px;
-            }
+            .game-btn { padding: 8px 16px; font-size: 14px; bottom: 15px; }
         }
     </style>
 </head>
 <body>
     <div id="container">
         <canvas id="jsdos"></canvas>
-        <button class="btn btn-start" id="startBtn">🎮 开始游戏</button>
-        <button class="btn btn-keyboard" id="keyboardBtn" style="display:none;">⌨️ 键盘</button>
+        <button class="game-btn btn-start" id="startBtn">🎮 开始游戏</button>
+        <button class="game-btn btn-keyboard" id="keyboardBtn">⌨️ 键盘</button>
+        <!-- 这个隐藏的input是用来唤起手机键盘的 -->
+        <input type="text" id="hidden-input">
     </div>
 
     <script>
-        var dosInstance = null;
+        var commandInterface = null;
         var canvas = document.getElementById('jsdos');
         var startBtn = document.getElementById('startBtn');
         var keyboardBtn = document.getElementById('keyboardBtn');
+        var hiddenInput = document.getElementById('hidden-input');
 
+        // --- 启动游戏 ---
         startBtn.addEventListener('click', function() {
             var self = this;
             self.style.display = 'none';
             
             Dos(canvas).ready(function(fs, main) {
-                dosInstance = { fs: fs, main: main };
                 fs.extract("rom/pal.zip").then(function() {
-                    main(["-c", "cd pal", "-c", "PAL!.EXE"]);
-                    // 游戏启动后显示虚拟键盘按钮
-                    keyboardBtn.style.display = 'block';
+                    // 保存main函数的引用，以便之后获取CI
+                    window.dosMain = main;
+                    // 启动游戏，并获取Command Interface (CI) 对象
+                    // 注意：此处的 .then() 捕获的是启动后的 CI
+                    main(["-c", "cd pal", "-c", "PAL!.EXE"]).then(function(ci) {
+                        commandInterface = ci;
+                        // 游戏启动成功后，显示键盘按钮
+                        keyboardBtn.style.display = 'block';
+                        console.log("游戏已启动，CI对象已就绪。");
+                    }).catch(function(err) {
+                        console.error("游戏启动失败:", err);
+                        alert("游戏启动失败，请检查 rom/pal.zip 文件是否存在。");
+                    });
                 }).catch(function(err) {
                     console.error("解压失败:", err);
-                    alert("游戏加载失败，请检查 rom/pal.zip 是否存在");
+                    alert("游戏加载失败，请检查 rom/pal.zip 文件。");
                 });
             });
         });
 
-        // 虚拟键盘：触屏手机用
-        keyboardBtn.addEventListener('click', function() {
-            if (dosInstance && dosInstance.main) {
-                // 尝试唤起 js-dos 的虚拟键盘
-                if (typeof dosInstance.main.showKeyboard === 'function') {
-                    dosInstance.main.showKeyboard();
-                } else if (typeof dosInstance.main.sendKey === 'function') {
-                    // 备用方案：发送一个回车键
-                    dosInstance.main.sendKey(13);
-                } else {
-                    alert("点击 canvas 区域可唤起系统键盘\n如需输入，请轻触画面");
-                }
-            } else {
-                alert("游戏未启动，请先点击「开始游戏」");
-            }
+        // --- 模拟键盘输入 (核心修正) ---
+        // 监听隐藏输入框的输入事件
+        hiddenInput.addEventListener('input', function(e) {
+            // 获取用户输入的字符
+            const char = e.target.value;
+            if (!char || !commandInterface) return;
+
+            // 获取字符的ASCII码
+            const keyCode = char.charCodeAt(0);
+            console.log(`模拟按键: ${char} (${keyCode})`);
+
+            // 通过CI对象发送按键事件
+            commandInterface.simulateKeyPress(keyCode);
+            
+            // 清空输入框，为下一次输入做准备
+            hiddenInput.value = '';
         });
 
-        // 点击 canvas 也能尝试唤起键盘（备用）
-        canvas.addEventListener('touchstart', function(e) {
-            if (dosInstance && dosInstance.main) {
-                if (typeof dosInstance.main.showKeyboard === 'function') {
-                    setTimeout(function() {
-                        dosInstance.main.showKeyboard();
-                    }, 100);
+        // 监听隐藏输入框的blur事件，当键盘收起时，让输入框重新获得焦点（以便下次点击键盘按钮时能立即弹出）
+        hiddenInput.addEventListener('blur', function() {
+            // 延迟一下再聚焦，避免立即弹窗影响体验
+            setTimeout(() => {
+                if (keyboardBtn.style.display === 'block') {
+                    hiddenInput.focus();
                 }
+            }, 100);
+        });
+
+        // --- 键盘按钮：唤起系统键盘 ---
+        keyboardBtn.addEventListener('click', function() {
+            if (!commandInterface) {
+                alert("游戏未启动，请先点击「开始游戏」");
+                return;
+            }
+            // 让隐藏的输入框获得焦点，从而弹出系统键盘
+            hiddenInput.focus();
+        });
+
+        // 可选：点击canvas也可以让隐藏输入框获得焦点
+        canvas.addEventListener('touchstart', function(e) {
+            if (commandInterface) {
+                hiddenInput.focus();
             }
         });
     </script>
