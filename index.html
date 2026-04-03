@@ -18,7 +18,6 @@ cat > index.html << 'EOF'
             overflow: hidden;
             background: #000;
         }
-        /* 游戏区域：居中最大化 */
         #game-area {
             position: absolute;
             top: 0;
@@ -40,7 +39,6 @@ cat > index.html << 'EOF'
             display: block;
             outline: none;
         }
-        /* 虚拟键盘容器：横屏时左右分区 */
         .virtual-keyboard {
             position: fixed;
             top: 0;
@@ -53,7 +51,6 @@ cat > index.html << 'EOF'
             pointer-events: none;
             z-index: 2;
         }
-        /* 左区域：方向键，透明，可点击 */
         .dpad {
             display: grid;
             grid-template-columns: repeat(3, 80px);
@@ -65,7 +62,6 @@ cat > index.html << 'EOF'
             background: transparent;
             padding: 20px;
         }
-        /* 右区域：确认取消，透明，可点击 */
         .action-buttons {
             display: flex;
             flex-direction: column;
@@ -74,7 +70,6 @@ cat > index.html << 'EOF'
             background: transparent;
             padding: 20px;
         }
-        /* 按钮样式不变（只改背景透明） */
         .key-btn {
             width: 80px;
             height: 80px;
@@ -99,28 +94,43 @@ cat > index.html << 'EOF'
             background: #1abc9c;
             color: #000;
         }
-        /* 竖屏时改为底部布局 */
+        @media (orientation: landscape) {
+            .virtual-keyboard {
+                background: transparent;
+            }
+            .dpad, .action-buttons {
+                background: transparent;
+            }
+        }
         @media (orientation: portrait) {
             .virtual-keyboard {
                 flex-direction: column;
                 justify-content: flex-end;
-                align-items: center;
+                align-items: stretch;
                 top: auto;
                 bottom: 0;
                 height: auto;
                 background: rgba(0,0,0,0.5);
-                padding: 12px 0;
+                padding: 0;
+            }
+            .keyboard-bottom {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+                padding: 12px 20px;
+                box-sizing: border-box;
             }
             .dpad {
                 grid-template-columns: repeat(3, 70px);
                 grid-template-rows: repeat(2, 70px);
                 gap: 8px;
-                padding: 5px;
+                padding: 0;
             }
             .action-buttons {
-                flex-direction: row;
-                gap: 20px;
-                padding: 5px;
+                flex-direction: column;
+                gap: 16px;
+                padding: 0;
             }
             .key-btn {
                 width: 70px;
@@ -132,16 +142,6 @@ cat > index.html << 'EOF'
                 width: 90px;
             }
         }
-        /* 横屏时左右按钮完全透明无背景 */
-        @media (orientation: landscape) {
-            .dpad, .action-buttons {
-                background: transparent;
-            }
-            .virtual-keyboard {
-                background: transparent;
-            }
-        }
-        /* 启动遮罩 */
         #start-overlay {
             position: fixed;
             top: 0;
@@ -178,15 +178,17 @@ cat > index.html << 'EOF'
 </div>
 
 <div class="virtual-keyboard" id="virtualKeyboard" style="display: none;">
-    <div class="dpad">
-        <div class="key-btn up" data-key="ArrowUp" data-code="38">▲</div>
-        <div class="key-btn left" data-key="ArrowLeft" data-code="37">◀</div>
-        <div class="key-btn down" data-key="ArrowDown" data-code="40">▼</div>
-        <div class="key-btn right" data-key="ArrowRight" data-code="39">▶</div>
-    </div>
-    <div class="action-buttons">
-        <div class="key-btn" data-key=" " data-code="32">确认</div>
-        <div class="key-btn" data-key="Escape" data-code="27">取消</div>
+    <div class="keyboard-bottom">
+        <div class="dpad">
+            <div class="key-btn up" data-key="ArrowUp" data-code="38">▲</div>
+            <div class="key-btn left" data-key="ArrowLeft" data-code="37">◀</div>
+            <div class="key-btn down" data-key="ArrowDown" data-code="40">▼</div>
+            <div class="key-btn right" data-key="ArrowRight" data-code="39">▶</div>
+        </div>
+        <div class="action-buttons">
+            <div class="key-btn" data-key=" " data-code="32">确认</div>
+            <div class="key-btn" data-key="Escape" data-code="27">取消</div>
+        </div>
     </div>
 </div>
 
