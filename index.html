@@ -16,112 +16,147 @@
             height: 100%;
             overflow: hidden;
             background: #000;
-            position: fixed;
         }
-        /* 游戏区域始终填满屏幕，并随屏幕旋转自动适应 */
+        /* 游戏区域 */
         #game-area {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             background: #000;
+            z-index: 1;
         }
         canvas {
-            width: 100% !important;
-            height: 100% !important;
+            width: auto !important;
+            height: auto !important;
+            max-width: 100%;
+            max-height: 100%;
             object-fit: contain;
             display: block;
             outline: none;
         }
-        /* 虚拟键盘容器 - 固定在底部，横竖屏自适应 */
+        /* 虚拟键盘容器 */
         .virtual-keyboard {
             position: fixed;
-            bottom: max(12px, env(safe-area-inset-bottom));
+            top: 0;
             left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
-            gap: clamp(10px, 3vw, 20px);
-            padding: clamp(8px, 2vw, 12px);
-            background: rgba(0,0,0,0.65);
-            backdrop-filter: blur(10px);
-            flex-wrap: wrap;
-            z-index: 1000;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
         }
-        /* 方向键区域：网格布局，保持正方形按钮 */
-        .dpad {
-            display: grid;
-            grid-template-columns: repeat(3, min(18vw, 80px));
-            grid-template-rows: repeat(2, min(18vw, 80px));
-            gap: clamp(6px, 2vw, 12px);
-            justify-items: center;
-            align-items: center;
+        /* ========== 横屏布局（独立） ========== */
+        @media (orientation: landscape) {
+            .virtual-keyboard {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            /* 方向键：左侧 */
+            .dpad {
+                display: grid;
+                grid-template-columns: repeat(3, 80px);
+                grid-template-rows: repeat(2, 80px);
+                gap: 12px;
+                justify-items: center;
+                align-items: center;
+                pointer-events: auto;
+                padding: 20px;
+            }
+            .dpad .up { grid-column: 2 / 3; grid-row: 1 / 2; }
+            .dpad .left { grid-column: 1 / 2; grid-row: 2 / 3; }
+            .dpad .down { grid-column: 2 / 3; grid-row: 2 / 3; }
+            .dpad .right { grid-column: 3 / 4; grid-row: 2 / 3; }
+            /* 确认取消：右侧垂直排列 */
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+                pointer-events: auto;
+                padding: 20px;
+            }
         }
-        .dpad .up { grid-column: 2 / 3; grid-row: 1 / 2; }
-        .dpad .left { grid-column: 1 / 2; grid-row: 2 / 3; }
-        .dpad .down { grid-column: 2 / 3; grid-row: 2 / 3; }
-        .dpad .right { grid-column: 3 / 4; grid-row: 2 / 3; }
-        
-        .action-buttons {
-            display: flex;
-            gap: clamp(10px, 3vw, 20px);
+        /* ========== 竖屏布局（独立） ========== */
+        @media (orientation: portrait) {
+            .virtual-keyboard {
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+            }
+            /* 下部容器：左右两半 */
+            .keyboard-bottom {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+                padding: 12px 20px;
+                box-sizing: border-box;
+                pointer-events: none;
+            }
+            /* 方向键：左下 */
+            .dpad {
+                display: grid;
+                grid-template-columns: repeat(3, 70px);
+                grid-template-rows: repeat(2, 70px);
+                gap: 8px;
+                justify-items: center;
+                align-items: center;
+                pointer-events: auto;
+            }
+            .dpad .up { grid-column: 2 / 3; grid-row: 1 / 2; }
+            .dpad .left { grid-column: 1 / 2; grid-row: 2 / 3; }
+            .dpad .down { grid-column: 2 / 3; grid-row: 2 / 3; }
+            .dpad .right { grid-column: 3 / 4; grid-row: 2 / 3; }
+            /* 确认取消：右下垂直排列 */
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                pointer-events: auto;
+            }
         }
+        /* 按钮通用样式 */
         .key-btn {
-            width: min(18vw, 80px);
-            height: min(18vw, 80px);
+            width: 80px;
+            height: 80px;
             border-radius: 20px;
-            background: rgba(44,62,80,0.9);
-            border: none;
-            color: #ecf0f1;
-            font-size: clamp(18px, 5vw, 28px);
+            background: rgba(0,0,0,0.4);
+            border: 2px solid rgba(255,255,255,0.6);
+            color: white;
+            font-size: 24px;
             font-weight: bold;
             text-align: center;
-            line-height: min(18vw, 80px);
+            line-height: 80px;
             cursor: pointer;
             touch-action: manipulation;
             transition: all 0.05s linear;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
         .action-buttons .key-btn {
-            width: min(22vw, 110px);
-            padding: 0 8px;
+            width: 100px;
         }
         .key-btn:active {
             transform: scale(0.94);
             background: #1abc9c;
             color: #000;
         }
-        /* 针对横屏优化：按钮稍微缩小，间距收紧 */
-        @media (orientation: landscape) {
-            .dpad {
-                grid-template-columns: repeat(3, min(12vw, 70px));
-                grid-template-rows: repeat(2, min(12vw, 70px));
-                gap: 6px;
-            }
+        /* 竖屏时按钮稍小 */
+        @media (orientation: portrait) {
             .key-btn {
-                width: min(12vw, 70px);
-                height: min(12vw, 70px);
-                line-height: min(12vw, 70px);
-                font-size: clamp(16px, 4vw, 24px);
+                width: 70px;
+                height: 70px;
+                line-height: 70px;
+                font-size: 20px;
             }
             .action-buttons .key-btn {
-                width: min(16vw, 90px);
-            }
-            .virtual-keyboard {
-                bottom: 8px;
-                gap: 12px;
-                padding: 6px;
+                width: 90px;
             }
         }
-        /* 小手机额外适配 */
-        @media (max-width: 600px) and (orientation: portrait) {
-            .dpad { gap: 6px; }
-            .key-btn { border-radius: 16px; }
-        }
-        /* 启动遮罩层 */
+        /* 启动遮罩 */
         #start-overlay {
             position: fixed;
             top: 0;
@@ -134,24 +169,21 @@
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            backdrop-filter: blur(8px);
         }
         #start-btn {
             padding: 16px 40px;
-            font-size: clamp(20px, 6vw, 32px);
+            font-size: 26px;
             font-weight: bold;
             background: #4caf50;
             color: white;
             border: none;
             border-radius: 60px;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .info {
             color: #ccc;
             margin-top: 20px;
             font-size: 14px;
-            text-align: center;
         }
     </style>
 </head>
@@ -161,15 +193,18 @@
 </div>
 
 <div class="virtual-keyboard" id="virtualKeyboard" style="display: none;">
-    <div class="dpad">
-        <div class="key-btn up" data-key="ArrowUp" data-code="38">▲</div>
-        <div class="key-btn left" data-key="ArrowLeft" data-code="37">◀</div>
-        <div class="key-btn down" data-key="ArrowDown" data-code="40">▼</div>
-        <div class="key-btn right" data-key="ArrowRight" data-code="39">▶</div>
-    </div>
-    <div class="action-buttons">
-        <div class="key-btn" data-key=" " data-code="32">确认</div>
-        <div class="key-btn" data-key="Escape" data-code="27">取消</div>
+    <!-- 竖屏时需要这个包装层，横屏时忽略 -->
+    <div class="keyboard-bottom">
+        <div class="dpad">
+            <div class="key-btn up" data-key="ArrowUp" data-code="38">▲</div>
+            <div class="key-btn left" data-key="ArrowLeft" data-code="37">◀</div>
+            <div class="key-btn down" data-key="ArrowDown" data-code="40">▼</div>
+            <div class="key-btn right" data-key="ArrowRight" data-code="39">▶</div>
+        </div>
+        <div class="action-buttons">
+            <div class="key-btn" data-key=" " data-code="32">确认</div>
+            <div class="key-btn" data-key="Escape" data-code="27">取消</div>
+        </div>
     </div>
 </div>
 
@@ -227,7 +262,6 @@
             });
         }
 
-        // 启动遮罩
         var startOverlay = document.createElement('div');
         startOverlay.id = 'start-overlay';
         var startBtn = document.createElement('button');
