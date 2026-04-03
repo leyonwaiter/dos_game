@@ -1,21 +1,63 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <title>js-dos - 仙剑奇侠传</title>
-  <script src="js-dos.js"></script>
-  <style>
-    canvas { width: 640px; height: 400px; }
-  </style>
+    <meta charset="utf-8">
+    <title>仙剑奇侠传</title>
+    <script src="js-dos.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #container {
+            position: relative;
+        }
+        canvas {
+            width: 640px;
+            height: 400px;
+            display: block;
+        }
+        #startBtn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 40px;
+            font-size: 20px;
+            background: #0f0;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            z-index: 100;
+            font-weight: bold;
+        }
+        #startBtn:hover {
+            background: #0c0;
+        }
+    </style>
 </head>
 <body>
-  <canvas id="jsdos"></canvas>
-  <script>
-    Dos(document.getElementById("jsdos")).ready((fs, main) => {
-      fs.extract("rom/pal.zip").then(() => {
-        main(["-c", "cd pal", "-c", "PAL!.EXE"]).then((ci) => window.Module = ci.dos);
-      });
-    });
-  </script>
+    <div id="container">
+        <canvas id="jsdos" width="640" height="400"></canvas>
+        <button id="startBtn">🎮 点击开始游戏</button>
+    </div>
+    <script>
+        var dosInstance = null;
+        var btn = document.getElementById('startBtn');
+        var canvas = document.getElementById('jsdos');
+        
+        btn.addEventListener('click', function() {
+            btn.style.display = 'none';
+            Dos(canvas).ready(function(fs, main) {
+                fs.extract("rom/pal.zip").then(function() {
+                    main(["-c", "cd pal", "-c", "PAL!.EXE"]);
+                });
+            });
+        });
+    </script>
 </body>
 </html>
