@@ -2,133 +2,242 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>仙剑奇侠传 - 移动版</title>
-    <script src="js-dos.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>仙剑奇侠传 - 触屏版</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; touch-action: manipulation; }
-        body { background: #000; width: 100vw; height: 100vh; overflow: hidden; }
-        #container { width: 100%; height: 100%; position: relative; background: #000; }
-        canvas { width: 100% !important; height: 100% !important; object-fit: contain; }
-        /* 游戏控制按钮样式 */
-        .game-btn {
-            position: fixed;
-            bottom: 20px;
-            padding: 12px 24px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            transition: transform 0.1s ease;
+        * {
+            user-select: none;
+            touch-action: manipulation;
         }
-        .game-btn:active { transform: scale(0.96); }
-        .btn-start { left: 20px; background: #4CAF50; color: white; }
-        .btn-keyboard { right: 20px; background: #2196F3; color: white; display: none; }
-        /* 透明输入框：用来唤起系统键盘，但不显示在屏幕上 */
-        #hidden-input {
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            position: fixed;
+        }
+        #game-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain;
+            display: block;
+            outline: none;
+        }
+        .virtual-keyboard {
+            position: fixed;
+            bottom: max(12px, env(safe-area-inset-bottom));
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: clamp(10px, 3vw, 20px);
+            padding: clamp(8px, 2vw, 12px);
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(10px);
+            flex-wrap: wrap;
+            z-index: 1000;
+        }
+        .dpad {
+            display: grid;
+            grid-template-columns: repeat(3, min(18vw, 80px));
+            grid-template-rows: repeat(2, min(18vw, 80px));
+            gap: clamp(6px, 2vw, 12px);
+            justify-items: center;
+            align-items: center;
+        }
+        .dpad .up { grid-column: 2 / 3; grid-row: 1 / 2; }
+        .dpad .left { grid-column: 1 / 2; grid-row: 2 / 3; }
+        .dpad .down { grid-column: 2 / 3; grid-row: 2 / 3; }
+        .dpad .right { grid-column: 3 / 4; grid-row: 2 / 3; }
+        .action-buttons {
+            display: flex;
+            gap: clamp(10px, 3vw, 20px);
+        }
+        .key-btn {
+            width: min(18vw, 80px);
+            height: min(18vw, 80px);
+            border-radius: 20px;
+            background: rgba(44,62,80,0.9);
+            border: none;
+            color: #ecf0f1;
+            font-size: clamp(18px, 5vw, 28px);
+            font-weight: bold;
+            text-align: center;
+            line-height: min(18vw, 80px);
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.05s linear;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+        }
+        .action-buttons .key-btn {
+            width: min(22vw, 110px);
+            padding: 0 8px;
+        }
+        .key-btn:active {
+            transform: scale(0.94);
+            background: #1abc9c;
+            color: #000;
+        }
+        @media (orientation: landscape) {
+            .dpad {
+                grid-template-columns: repeat(3, min(12vw, 70px));
+                grid-template-rows: repeat(2, min(12vw, 70px));
+                gap: 6px;
+            }
+            .key-btn {
+                width: min(12vw, 70px);
+                height: min(12vw, 70px);
+                line-height: min(12vw, 70px);
+                font-size: clamp(16px, 4vw, 24px);
+            }
+            .action-buttons .key-btn {
+                width: min(16vw, 90px);
+            }
+            .virtual-keyboard {
+                bottom: 8px;
+                gap: 12px;
+                padding: 6px;
+            }
+        }
+        @media (max-width: 600px) and (orientation: portrait) {
+            .dpad { gap: 6px; }
+            .key-btn { border-radius: 16px; }
+        }
+        #start-overlay {
             position: fixed;
             top: 0;
             left: 0;
-            opacity: 0;
-            pointer-events: none;
-            width: 1px;
-            height: 1px;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            backdrop-filter: blur(8px);
         }
-        @media (max-width: 768px) {
-            .game-btn { padding: 8px 16px; font-size: 14px; bottom: 15px; }
+        #start-btn {
+            padding: 16px 40px;
+            font-size: clamp(20px, 6vw, 32px);
+            font-weight: bold;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .info {
+            color: #ccc;
+            margin-top: 20px;
+            font-size: 14px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div id="container">
-        <canvas id="jsdos"></canvas>
-        <button class="game-btn btn-start" id="startBtn">🎮 开始游戏</button>
-        <button class="game-btn btn-keyboard" id="keyboardBtn">⌨️ 键盘</button>
-        <!-- 这个隐藏的input是用来唤起手机键盘的 -->
-        <input type="text" id="hidden-input">
+<div id="game-area">
+    <canvas id="jsdos" tabindex="0"></canvas>
+</div>
+
+<div class="virtual-keyboard" id="virtualKeyboard" style="display: none;">
+    <div class="dpad">
+        <div class="key-btn up" data-key="ArrowUp" data-code="38">▲</div>
+        <div class="key-btn left" data-key="ArrowLeft" data-code="37">◀</div>
+        <div class="key-btn down" data-key="ArrowDown" data-code="40">▼</div>
+        <div class="key-btn right" data-key="ArrowRight" data-code="39">▶</div>
     </div>
+    <div class="action-buttons">
+        <div class="key-btn" data-key=" " data-code="32">确认</div>
+        <div class="key-btn" data-key="Escape" data-code="27">取消</div>
+    </div>
+</div>
 
-    <script>
-        var commandInterface = null;
+<script src="js-dos.js"></script>
+<script>
+    (function() {
         var canvas = document.getElementById('jsdos');
-        var startBtn = document.getElementById('startBtn');
-        var keyboardBtn = document.getElementById('keyboardBtn');
-        var hiddenInput = document.getElementById('hidden-input');
+        var virtualKeyboard = document.getElementById('virtualKeyboard');
+        var isGameStarted = false;
 
-        // --- 启动游戏 ---
-        startBtn.addEventListener('click', function() {
-            var self = this;
-            self.style.display = 'none';
-            
+        function sendKeyEvent(key, keyCode, type) {
+            if (!canvas) return;
+            canvas.focus();
+            canvas.dispatchEvent(new KeyboardEvent(type, { key: key, keyCode: keyCode, bubbles: true }));
+        }
+
+        function startGame() {
+            if (isGameStarted) return;
+            isGameStarted = true;
+            virtualKeyboard.style.display = 'flex';
+
             Dos(canvas).ready(function(fs, main) {
                 fs.extract("rom/pal.zip").then(function() {
-                    // 保存main函数的引用，以便之后获取CI
-                    window.dosMain = main;
-                    // 启动游戏，并获取Command Interface (CI) 对象
-                    // 注意：此处的 .then() 捕获的是启动后的 CI
-                    main(["-c", "cd pal", "-c", "PAL!.EXE"]).then(function(ci) {
-                        commandInterface = ci;
-                        // 游戏启动成功后，显示键盘按钮
-                        keyboardBtn.style.display = 'block';
-                        console.log("游戏已启动，CI对象已就绪。");
-                    }).catch(function(err) {
-                        console.error("游戏启动失败:", err);
-                        alert("游戏启动失败，请检查 rom/pal.zip 文件是否存在。");
-                    });
+                    main(["-c", "cd pal", "-c", "PAL!.EXE"]);
                 }).catch(function(err) {
                     console.error("解压失败:", err);
-                    alert("游戏加载失败，请检查 rom/pal.zip 文件。");
+                    alert("游戏加载失败，请检查 rom/pal.zip 是否存在");
                 });
             });
+        }
+
+        function bindVirtualKeys() {
+            var btns = document.querySelectorAll('.key-btn');
+            btns.forEach(function(btn) {
+                var key = btn.getAttribute('data-key');
+                var keyCode = parseInt(btn.getAttribute('data-code'), 10);
+                if (!key || isNaN(keyCode)) return;
+
+                var onPress = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    sendKeyEvent(key, keyCode, 'keydown');
+                };
+                var onRelease = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    sendKeyEvent(key, keyCode, 'keyup');
+                };
+
+                btn.addEventListener('mousedown', onPress);
+                btn.addEventListener('mouseup', onRelease);
+                btn.addEventListener('touchstart', onPress, { passive: false });
+                btn.addEventListener('touchend', onRelease);
+                btn.addEventListener('touchcancel', onRelease);
+            });
+        }
+
+        var startOverlay = document.createElement('div');
+        startOverlay.id = 'start-overlay';
+        var startBtn = document.createElement('button');
+        startBtn.id = 'start-btn';
+        startBtn.textContent = '🎮 开始游戏';
+        var info = document.createElement('div');
+        info.className = 'info';
+        info.textContent = '点击后启动，虚拟键盘将出现';
+        startOverlay.appendChild(startBtn);
+        startOverlay.appendChild(info);
+        document.body.appendChild(startOverlay);
+
+        startBtn.addEventListener('click', function() {
+            startOverlay.remove();
+            startGame();
+            bindVirtualKeys();
         });
-
-        // --- 模拟键盘输入 (核心修正) ---
-        // 监听隐藏输入框的输入事件
-        hiddenInput.addEventListener('input', function(e) {
-            // 获取用户输入的字符
-            const char = e.target.value;
-            if (!char || !commandInterface) return;
-
-            // 获取字符的ASCII码
-            const keyCode = char.charCodeAt(0);
-            console.log(`模拟按键: ${char} (${keyCode})`);
-
-            // 通过CI对象发送按键事件
-            commandInterface.simulateKeyPress(keyCode);
-            
-            // 清空输入框，为下一次输入做准备
-            hiddenInput.value = '';
-        });
-
-        // 监听隐藏输入框的blur事件，当键盘收起时，让输入框重新获得焦点（以便下次点击键盘按钮时能立即弹出）
-        hiddenInput.addEventListener('blur', function() {
-            // 延迟一下再聚焦，避免立即弹窗影响体验
-            setTimeout(() => {
-                if (keyboardBtn.style.display === 'block') {
-                    hiddenInput.focus();
-                }
-            }, 100);
-        });
-
-        // --- 键盘按钮：唤起系统键盘 ---
-        keyboardBtn.addEventListener('click', function() {
-            if (!commandInterface) {
-                alert("游戏未启动，请先点击「开始游戏」");
-                return;
-            }
-            // 让隐藏的输入框获得焦点，从而弹出系统键盘
-            hiddenInput.focus();
-        });
-
-        // 可选：点击canvas也可以让隐藏输入框获得焦点
-        canvas.addEventListener('touchstart', function(e) {
-            if (commandInterface) {
-                hiddenInput.focus();
-            }
-        });
-    </script>
+    })();
+</script>
 </body>
 </html>
